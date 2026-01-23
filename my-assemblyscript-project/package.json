@@ -1,0 +1,22 @@
+{
+  "name": "my-assemblyscript-project",
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "asbuild": "asc assembly/index.ts -b build/optimized.wasm -t build/optimized.wat",
+    "test": "node tests",
+    "start": "npx serve ."
+  },
+  "dependencies": {
+    "assemblyscript": "^0.28.9"
+  },
+  "exports": {
+    ".": {
+      "import": "./build/release.js",
+      "types": "./build/release.d.ts"
+    }
+  },
+  "devDependencies": {
+    "assemblyscript": "^0.28.9"
+  }
+}

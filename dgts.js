@@ -1,0 +1,266 @@
+const SQUARE_SIZE = 50;
+const MAX_SPEED = 3;
+const MAX_LEVEL = 10;
+const SQUARES_PER_LEVEL = 10;
+const MAX_SQUARES = MAX_LEVEL * SQUARES_PER_LEVEL;
+
+const SCX = 1000;
+const SCY = 1000;
+let speed = 5;
+
+let squaresX = new Array(MAX_SQUARES);
+let squaresY = new Array(MAX_SQUARES);
+let velX = new Array(MAX_SQUARES);
+let velY = new Array(MAX_SQUARES);
+
+const rand = () => Math.floor(Math.random() * (MAX_SPEED * 2 + 1)) - MAX_SPEED;
+
+let gameStarted = false;
+let gameOver = false;
+
+let currentLevel = 2;
+let squaresCount = currentLevel * SQUARES_PER_LEVEL;
+
+let score = 0;
+let lastScoreTime = 0.0;
+let finalScore = 0;
+
+let playerX = SCX / 2;
+let playerY = SCY / 2;
+const playerRadius = 10;
+
+const keys = {};
+
+const canvas = document.getElementById('gameCanvas');
+const ctx = canvas.getContext('2d');
+
+function init() {
+    document.addEventListener('keydown', handleKeyPress);
+    document.addEventListener('keyup', handleKeyRelease);
+    requestAnimationFrame(gameLoop);
+    resetGame();
+}
+
+function handleKeyPress(event) {
+    keys[event.key] = true;
+
+    if (!gameStarted) {
+        if (event.key === "ArrowRight") {
+            if (currentLevel < MAX_LEVEL) {
+                currentLevel++;
+                squaresCount = currentLevel * SQUARES_PER_LEVEL;
+            }
+        } else if (event.key === "ArrowLeft") {
+            if (currentLevel > 1) {
+                currentLevel--;
+                squaresCount = currentLevel * SQUARES_PER_LEVEL;
+            }
+        } else if (event.key === "Enter" || event.key === " ") {
+            gameStarted = true;
+            gameOver = false;
+            resetGame();
+        } else if (event.key === "Escape") {
+            window.close();
+        }
+    } else if (gameOver) {
+        if (event.key === "r") {
+            gameStarted = false;
+            gameOver = false;
+            score = 0;
+        } else if (event.key === "Escape") {
+            window.close();
+        }
+    }
+}
+
+function handleKeyRelease(event) {
+    keys[event.key] = false;
+}
+
+function resetGame() {
+    score = 0;
+    lastScoreTime = getTimeSeconds();
+    playerX = SCX / 2;
+    playerY = SCY / 2;
+    squaresCount = currentLevel * SQUARES_PER_LEVEL;
+    initSquares(squaresCount);
+}
+
+function getTimeSeconds() {
+    return performance.now() / 1000;
+}
+
+function initSquares(count) {
+    for (let i = 0; i < count; i++) {
+        squaresX[i] = Math.random() * (SCX - SQUARE_SIZE);
+        squaresY[i] = Math.random() * (SCY - SQUARE_SIZE);
+        velX[i] = rand();
+        velY[i] = rand();
+
+        if (velX[i] === 0) velX[i] = 1;
+        if (velY[i] === 0) velY[i] = 1;
+    }
+}
+
+function gameLoop() {
+    if (gameStarted && !gameOver) {
+        handleMovement();
+        updateScore();
+        updateSquares();
+        checkCollision();
+    }
+    draw();
+    requestAnimationFrame(gameLoop);
+}
+
+function handleMovement() {
+    if (keys['ArrowRight'] && (playerX + playerRadius + speed <= SCX)) {
+        playerX += speed;
+    }
+    if (keys['ArrowLeft'] && (playerX - playerRadius - speed >= 0)) {
+        playerX -= speed;
+    }
+    if (keys['ArrowUp'] && (playerY - playerRadius - speed >= 0
+)) {
+playerY -= speed;
+}
+if (keys['ArrowDown'] && (playerY + playerRadius + speed <= SCY)) {
+playerY += speed;
+}
+							    }
+							    function updateScore() {
+    const now = getTimeSeconds();
+    if (now - lastScoreTime >= 1.0) {
+        score++;
+        lastScoreTime = now;
+    }
+}
+
+function updateSquares() {
+    for (let i = 0; i < squaresCount; i++) {
+        squaresX[i] += velX[i];
+        squaresY[i] += velY[i];
+
+        if (squaresX[i] <= 0) {
+            squaresX[i] = 0;
+            velX[i] *= -1;
+        }
+        if (squaresX[i] >= SCX - SQUARE_SIZE) {
+            squaresX[i] = SCX - SQUARE_SIZE;
+            velX[i] *= -1;
+        }
+        if (squaresY[i] <= 0) {
+            squaresY[i] = 0;
+            velY[i] *= -1;
+        }
+        if (squaresY[i] >= SCY - SQUARE_SIZE) {
+            squaresY[i] = SCY - SQUARE_SIZE;
+            velY[i] *= -1;
+        }
+    }
+}
+
+function checkCollision() {
+    for (let i = 0; i < squaresCount; i++) {
+        if (checkCollisionCircleRec(playerX, playerY, playerRadius,
+                squaresX[i], squaresY[i], SQUARE_SIZE, SQUARE_SIZE)) {
+            gameOver = true;
+            finalScore = score * 10;
+            break;
+        }
+    }
+}
+
+function checkCollisionCircleRec(cx, cy, radius, rx, ry, rw, rh) {
+    const closestX = clamp(cx, rx, rx + rw);
+    const closestY = clamp(cy, ry, ry + rh);
+    const dx = cx - closestX;
+    const dy = cy - closestY;
+    return (dx * dx + dy * dy) <= (radius * radius);
+}
+
+function clamp(val, min, max) {
+    return Math.max(min, Math.min(max, val));
+}
+
+function draw() {
+    ctx.clearRect(0, 0, SCX, SCY);
+
+    if (!gameStarted) {
+        drawStartScreen();
+    } else if (gameOver) {
+        drawGameOverScreen();
+    } else {
+        drawGamePlay();
+    }
+}
+
+function drawStartScreen() {
+    ctx.fillStyle = 'gold';
+    ctx.font = '40px SansSerif';
+    drawCenteredText("DODGE THE SQUARES", SCX / 2, SCY / 6);
+
+    ctx.fillStyle = 'lightgray';
+    ctx.font = '20px SansSerif';
+    drawCenteredText("Level: " + currentLevel + " (Squares: " + (currentLevel * SQUARES_PER_LEVEL) + ")", SCX / 2, SCY / 6 + 80);
+    drawCenteredText("Use LEFT / RIGHT to change level", SCX / 2, SCY / 6 + 110);
+    drawCenteredText("Press ENTER or SPACE to start", SCX / 2, SCY / 6 + 140);
+    drawCenteredText("Arrow keys to move. Press ESC to quit.", SCX / 2, SCY / 6 + 170);
+    drawCenteredText("Press R during Game Over to return here.", SCX / 2, SCY / 6 + 200);
+
+    drawPlayer();
+}
+
+function drawGameOverScreen() {
+    ctx.fillStyle = 'blue';
+    for (let i = 0; i < squaresCount; i++) {
+        ctx.fillRect(squaresX[i], squaresY[i], SQUARE_SIZE, SQUARE_SIZE);
+    }
+
+    ctx.fillStyle = 'red';
+    drawPlayer();
+
+    ctx.fillStyle = 'red';
+    ctx.font = '24px SansSerif';
+    drawCenteredText("GAME OVER! Final score: " + finalScore, SCX / 2, SCY / 3);
+    
+    ctx.fillStyle = 'lightgray';
+    ctx.font = '20px SansSerif';
+    drawCenteredText("Press R to return to start screen (change level) or ESC to quit.", SCX / 2, SCY / 3 + 50);
+}
+
+function drawGamePlay() {
+    ctx.fillStyle = 'blue';
+    for (let i = 0; i < squaresCount; i++) {
+        ctx.fillRect(squaresX[i], squaresY[i], SQUARE_SIZE, SQUARE_SIZE);
+    }
+
+   
+        ctx.fillStyle = 'green';
+        drawPlayer();
+
+        ctx.fillStyle = 'white';
+        ctx.font = '20px SansSerif';
+        ctx.fillText("Score: " + score, 10, 25);
+        
+        const levelHud = "Level: " + currentLevel;
+        ctx.fillStyle = 'lightgray';
+        ctx.fillText(levelHud, SCX - ctx.measureText(levelHud).width - 10, 25);
+    }
+
+    function drawPlayer() {
+        ctx.beginPath();
+        ctx.arc(playerX, playerY, playerRadius, 0, Math.PI * 2);
+        ctx.fillStyle = 'green';
+        ctx.fill();
+        ctx.closePath();
+    }
+
+    function drawCenteredText(text, x, y) {
+        const metrics = ctx.measureText(text);
+        const width = metrics.width;
+        ctx.fillText(text, x - width / 2, y);
+    }
+
+    init();
+

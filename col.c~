@@ -1,0 +1,47 @@
+#include "raylib.h"
+
+int main(void) {
+    InitWindow(1200, 900, "Circle and Rectangle Collision Example");
+    SetTargetFPS(60);
+
+    Rectangle rect = {350, 250, 50, 40};
+    Vector2 center = {200, 200};
+    float radius = 20;
+    float speed = 3.0f;
+
+    while (!WindowShouldClose()) {
+
+
+ if ((IsKeyDown(KEY_RIGHT) || IsKeyDown(KEY_D)))
+      center.x += speed;
+    if ((IsKeyDown(KEY_LEFT) || IsKeyDown(KEY_A)))
+      center.x -= speed;
+
+    if ((IsKeyDown(KEY_UP) || IsKeyDown(KEY_W)))
+      center.y -= speed;
+
+ 
+    if ((IsKeyDown(KEY_DOWN) || IsKeyDown(KEY_S)))
+	  center.y += speed;
+
+
+      
+        BeginDrawing();
+        ClearBackground(RAYWHITE);
+
+        DrawRectangleRec(rect, BLUE);
+        DrawCircleV(center, radius, RED);
+
+        if (CheckCollisionCircleRec(center, radius, rect)) {
+            DrawText("Collision Detected!", 10, 10, 20, DARKGRAY);
+        }
+
+        EndDrawing();
+    }
+
+    CloseWindow();
+  
+    return 0;
+}
+
+  

@@ -1,0 +1,19 @@
+{
+  "name": "my-assemblyscript-project",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "module",
+  "dependencies": {
+    "assemblyscript": "^0.28.9"
+  }
+}
+"scripts": {
+    "asbuild": "asc assembly/index.ts -b build/optimized.wasm -t build/optimized.wat"
+}
