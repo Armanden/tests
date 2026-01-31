@@ -1,0 +1,40 @@
+#include "raylib.h"
+
+int main(void) {
+    // Initialization
+    const int screenWidth = 800;
+    const int screenHeight = 600;
+    InitWindow(screenWidth, screenHeight, "9x9 Grid Example");
+
+    const int gridSize = 9;
+    const float cellSize = 60.0f; // Size of each cell in pixels
+
+    SetTargetFPS(60);
+
+    while (!WindowShouldClose()) {
+        // Draw
+        BeginDrawing();
+        ClearBackground(RAYWHITE);
+
+        // Draw the grid
+        for (int row = 0; row < gridSize; row++) {
+            for (int col = 0; col < gridSize; col++) {
+                // Calculate the position
+                float x = col * cellSize;
+                float y = row * cellSize;
+                
+                // Draw the cell (you can change colors or add more effects)
+                DrawRectangle(x, y, cellSize, cellSize, LIGHTGRAY);
+                DrawRectangleLines(x, y, cellSize, cellSize, BLACK);
+            }
+        }
+
+        DrawText("9x9 Grid", 10, 10, 20, DARKGRAY);
+        EndDrawing();
+    }
+
+    // De-Initialization
+    CloseWindow(); // Close window and OpenGL context
+
+    return 0;
+}
