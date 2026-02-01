@@ -1,0 +1,19 @@
+fun main(){
+
+println("this is a calculator in kotlin")
+
+println("enter first number")
+var number_one: Int = readLine()
+
+println("enter equation symbol")
+var equation_symbol = readLine()
+
+println("enter second number")
+var number_two: Int = readLine()
+
+println(number_one equation_symbol number_two)
+
+
+
+
+}
