@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Wordle Clone</title>
+<style>
+  body {
+    font-family: Arial, sans-serif;
+    text-align: center;
+    background-color: #121213;
+    color: white;
+  }
+
+  h1 {
+    margin-top: 20px;
+  }
+
+  #board {
+    display: grid;
+    grid-template-rows: repeat(6, 1fr);
+    gap: 5px;
+    width: 300px;
+    margin: 20px auto;
+  }
+
+  .row {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 5px;
+  }
+
+  .tile {
+    width: 55px;
+    height: 55px;
+    border: 2px solid #3a3a3c;
+    font-size: 2rem;
+    font-weight: bold;
+    text-transform: uppercase;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: #121213;
+  }
+
+  .correct {
+    background-color: #538d4e;
+    border: none;
+  }
+
+  .present {
+    background-color: #b59f3b;
+    border: none;
+  }
+
+  .absent {
+    background-color: #3a3a3c;
+    border: none;
+  }
+
+  #message {
+    margin-top: 15px;
+    font-size: 1.2rem;
+  }
+
+  button {
+    margin-top: 15px;
+    padding: 8px 15px;
+    font-size: 1rem;
+    cursor: pointer;
+  }
+</style>
+</head>
+<body>
+
+<h1>Wordle</h1>
+<div id="board"></div>
+<div id="message"></div>
+<button onclick="resetGame()">New Game</button>
+
+<script>
+const words = ["APPLE", "GRAPE", "MANGO", "BERRY", "PEACH", "LEMON"];
+let secretWord = words[Math.floor(Math.random() * words.length)];
+let currentRow = 0;
+let currentTile = 0;
+let gameOver = false;
+
+const board = document.getElementById("board");
+const message = document.getElementById("message");
+
+// Create board
+for (let r = 0; r < 6; r++) {
+  const row = document.createElement("div");
+  row.classList.add("row");
+  for (let c = 0; c < 5; c++) {
+    const tile = document.createElement("div");
+    tile.classList.add("tile");
+    row.appendChild(tile);
+  }
+  board.appendChild(row);
+}
+
+document.addEventListener("keydown", handleKey);
+
+function handleKey(e) {
+  if (gameOver) return;
+
+  if (e.key === "Backspace") {
+    if (currentTile > 0) {
+      currentTile--;
+      getTile(currentRow, currentTile).textContent = "";
+    }
+  } else if (e.key === "Enter") {
+    if (currentTile === 5) checkGuess();
+  } else if (/^[a-zA-Z]$/.test(e.key)) {
+    if (currentTile < 5) {
+      getTile(currentRow, currentTile).textContent = e.key.toUpperCase();
+      currentTile++;
+    }
+  }
+}
+
+function getTile(row, col) {
+  return board.children[row].children[col];
+}
+
+function checkGuess() {
+  let guess = "";
+  for (let i = 0; i < 5; i++) {
+    guess += getTile(currentRow, i).textContent;
+  }
+
+  if (guess.length < 5) return;
+
+  for (let i = 0; i < 5; i++) {
+    const tile = getTile(currentRow, i);
+    if (guess[i] === secretWord[i]) {
+      tile.classList.add("correct");
+    } else if (secretWord.includes(guess[i])) {
+      tile.classList.add("present");
+    } else {
+      tile.classList.add("absent");
+    }
+  }
+
+  if (guess === secretWord) {
+    message.textContent = "You guessed it!";
+    gameOver = true;
+    return;
+  }
+
+  currentRow++;
+  currentTile = 0;
+
+  if (currentRow === 6) {
+    message.textContent = "Game Over! Word was: " + secretWord;
+    gameOver = true;
+  }
+}
+
+function resetGame() {
+  secretWord = words[Math.floor(Math.random() * words.length)];
+  currentRow = 0;
+  currentTile = 0;
+  gameOver = false;
+  message.textContent = "";
+
+  for (let r = 0; r < 6; r++) {
+    for (let c = 0; c < 5; c++) {
+      const tile = getTile(r, c);
+      tile.textContent = "";
+      tile.className = "tile";
+    }
+  }
+}
+</script>
+
+</body>
+</html>

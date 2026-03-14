@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>QR Code Reader</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+
+        .container {
+            background: white;
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            max-width: 500px;
+            width: 90%;
+        }
+
+        h1 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 30px;
+            font-size: 28px;
+        }
+
+        .video-container {
+            position: relative;
+            width: 100%;
+            margin-bottom: 20px;
+            border-radius: 15px;
+            overflow: hidden;
+            background: #000;
+        }
+
+        video {
+            width: 100%;
+            display: block;
+            border-radius: 15px;
+        }
+
+        .canvas-container {
+            display: none;
+        }
+
+        canvas {
+            display: none;
+        }
+
+        .controls {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        button {
+            flex: 1;
+            padding: 12px 20px;
+            border: none;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .btn-start {
+            background: #667eea;
+            color: white;
+        }
+
+        .btn-start:hover {
+            background: #5568d3;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-stop {
+            background: #f5365c;
+            color: white;
+        }
+
+        .btn-stop:hover {
+            background: #ec0c38;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(245, 54, 92, 0.4);
+        }
+
+        .btn-start:disabled,
+        .btn-stop:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .result-box {
+            background: #f8f9fa;
+            border-left: 4px solid #667eea;
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            display: none;
+        }
+
+        .result-box.show {
+            display: block;
+            animation: slideIn 0.3s ease;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .result-box h3 {
+            color: #667eea;
+            margin-bottom: 10px;
+            font-size: 14px;
+            text-transform: uppercase;
+        }
+
+        .result-box p {
+            color: #333;
+            word-break: break-all;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+        }
+
+        .copy-btn {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 8px 15px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 12px;
+            margin-top: 10px;
+            transition: all 0.3s ease;
+        }
+
+        .copy-btn:hover {
+            background: #5568d3;
+        }
+
+        .status {
+            text-align: center;
+            color: #666;
+            font-size: 14px;
+            margin-top: 15px;
+        }
+
+        .status.scanning {
+            color: #667eea;
+            font-weight: 600;
+        }
+
+        .error {
+            background: #fee;
+            border-left-color: #f5365c;
+            display: block;
+            animation: slideIn 0.3s ease;
+        }
+
+        .error h3 {
+            color: #f5365c;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>📱 QR Code Reader</h1>
+        
+        <div class="video-container">
+            <video id="video" playsinline></video>
+            <canvas id="canvas"></canvas>
+        </div>
+
+        <div class="controls">
+            <button class="btn-start" id="startBtn" onclick="startCamera()">Start Camera</button>
+            <button class="btn-stop" id="stopBtn" onclick="stopCamera()" disabled>Stop Camera</button>
+        </div>
+
+        <div class="result-box" id="resultBox">
+            <h3>✓ QR Code Detected</h3>
+            <p id="resultText"></p>
+            <button class="copy-btn" onclick="copyToClipboard()">Copy Result</button>
+        </div>
+
+        <div class="result-box error" id="errorBox" style="display: none;">
+            <h3>✗ Error</h3>
+            <p id="errorText"></p>
+        </div>
+
+        <div class="status" id="status">Ready to scan</div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"></script>
+    <script>
+        let video = document.getElementById('video');
+        let canvas = document.getElementById('canvas');
+        let ctx = canvas.getContext('2d');
+        let scanningActive = false;
+        let currentResult = null;
+
+        async function startCamera() {
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({
+                    video: { facingMode: 'environment' }
+                });
+
+                video.srcObject = stream;
+                video.play();
+
+                document.getElementById('startBtn').disabled = true;
+                document.getElementById('stopBtn').disabled = false;
+                document.getElementById('status').textContent = 'Scanning...';
+                document.getElementById('status').classList.add('scanning');
+                document.getElementById('errorBox').style.display = 'none';
+
+                scanningActive = true;
+                scan();
+            } catch (error) {
+                showError('Failed to access camera: ' + error.message);
+            }
+        }
+
+        function stopCamera() {
+            const stream = video.srcObject;
+            const tracks = stream.getTracks();
+            tracks.forEach(track => track.stop());
+
+            video.srcObject = null;
+            scanningActive = false;
+
+            document.getElementById('startBtn').disabled = false;
+            document.getElementById('stopBtn').disabled = true;
+            document.getElementById('status').textContent = 'Ready to scan';
+            document.getElementById('status').classList.remove('scanning');
+        }
+
+        function scan() {
+            if (!scanningActive) return;
+
+            if (video.readyState === video.HAVE_ENOUGH_DATA) {
+                canvas.width = video.videoWidth;
+                canvas.height = video.videoHeight;
+                ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+                const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+                const code = jsQR(imageData.data, imageData.width, imageData.height, {
+                    inversionAttempts: "dontInvert",
+                });
+
+                if (code) {
+                    currentResult = code.data;
+                    displayResult(code.data);
+                } else {
+                    document.getElementById('resultBox').classList.remove('show');
+                }
+            }
+
+            requestAnimationFrame(scan);
+        }
+
+        function displayResult(text) {
+            document.getElementById('resultText').textContent = text;
+            document.getElementById('resultBox').classList.add('show');
+        }
+
+        function showError(message) {
+            document.getElementById('errorText').textContent = message;
+            document.getElementById('errorBox').style.display = 'block';
+        }
+
+        function copyToClipboard() {
+            if (currentResult) {
+                navigator.clipboard.writeText(currentResult).then(() => {
+                    const btn = event.target;
+                    const originalText = btn.textContent;
+                    btn.textContent = 'Copied!';
+                    setTimeout(() => {
+                        btn.textContent = originalText;
+                    }, 2000);
+                });
+            }
+        }
+    </script>
+</body>
+</html>

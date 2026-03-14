@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tic-Tac-Toe</title>
+    <style>
+        body {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            background-color: #808080; /* grey background */
+            font-family: Arial, sans-serif;
+	    	margin: 0;
+    overflow: hidden;
+        }
+
+        #game {
+            display: grid;
+            grid-template-columns: repeat(3, 180px);
+            grid-template-rows: repeat(3, 180px);
+            gap: 5px;
+        }
+
+        .cell {
+            background-color: #fff;
+            border: 2px solid #000;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 80px;
+            cursor: pointer;
+            user-select: none;
+        }
+
+        .cell.winner {
+            background-color: #8fbc8f;
+        }
+
+        #message {
+            margin-top: 20px;
+            text-align: center;
+            font-size: 24px;
+            color: #fff;
+        }
+
+        #restart {
+            margin-top: 10px;
+            padding: 10px 20px;
+            font-size: 18px;
+            cursor: pointer;
+            border: none;
+            background-color: #444;
+            color: #fff;
+        }
+
+        #restart:hover {
+            background-color: #666;
+        }
+    </style>
+</head>
+<body>
+    <div>
+        <div id="game"></div>
+        <div id="message"></div>
+        <button id="restart">Restart Game</button><br><br>
+	  <a href="gindex.html">Back to Gamespage</a><br><br>
+ <a href="../../index.html">Back to Homepage</a>
+    
+    </div>
+
+    <script>
+        const gameBoard = [
+            [0,0,0],
+            [0,0,0],
+            [0,0,0]
+        ];
+        const gameContainer = document.getElementById('game');
+        const messageEl = document.getElementById('message');
+        const restartBtn = document.getElementById('restart');
+        let currentPlayer = 1; // 1 = X, 2 = O
+        let gameOver = false;
+
+        function createBoard() {
+            gameContainer.innerHTML = '';
+            for (let r = 0; r < 3; r++) {
+                for (let c = 0; c < 3; c++) {
+                    const cell = document.createElement('div');
+                    cell.classList.add('cell');
+                    cell.dataset.row = r;
+                    cell.dataset.col = c;
+                    cell.addEventListener('click', onCellClick);
+                    gameContainer.appendChild(cell);
+                }
+            }
+        }
+
+        function onCellClick(e) {
+            if (gameOver) return;
+
+            const row = e.target.dataset.row;
+            const col = e.target.dataset.col;
+
+            if (gameBoard[row][col] !== 0) return;
+
+            gameBoard[row][col] = currentPlayer;
+            e.target.textContent = currentPlayer === 1 ? 'X' : 'O';
+
+            const winLine = checkWin();
+            if (winLine) {
+                highlightWinner(winLine);
+                messageEl.textContent = `${currentPlayer === 1 ? 'X' : 'O'} Wins!`;
+                gameOver = true;
+            } else {
+                currentPlayer = currentPlayer === 1 ? 2 : 1;
+            }
+        }
+
+        function checkWin() {
+            // Rows & Columns
+            for (let i = 0; i < 3; i++) {
+                // Row
+                if (gameBoard[i][0] !== 0 && gameBoard[i][0] === gameBoard[i][1] && gameBoard[i][1] === gameBoard[i][2]) {
+                    return { type: 'row', index: i };
+                }
+                // Column
+                if (gameBoard[0][i] !== 0 && gameBoard[0][i] === gameBoard[1][i] && gameBoard[1][i] === gameBoard[2][i]) {
+                    return { type: 'col', index: i };
+                }
+            }
+            // Diagonals
+            if (gameBoard[0][0] !== 0 && gameBoard[0][0] === gameBoard[1][1] && gameBoard[1][1] === gameBoard[2][2]) {
+                return { type: 'diag', dir: 'main' };
+            }
+            if (gameBoard[0][2] !== 0 && gameBoard[0][2] === gameBoard[1][1] && gameBoard[1][1] === gameBoard[2][0]) {
+                return { type: 'diag', dir: 'anti' };
+            }
+            return null;
+        }
+
+        function highlightWinner(winLine) {
+            const cells = document.querySelectorAll('.cell');
+            if (winLine.type === 'row') {
+                for (let c = 0; c < 3; c++) {
+                    cells[winLine.index * 3 + c].classList.add('winner');
+                }
+            } else if (winLine.type === 'col') {
+                for (let r = 0; r < 3; r++) {
+                    cells[r * 3 + winLine.index].classList.add('winner');
+                }
+            } else if (winLine.type === 'diag') {
+                if (winLine.dir === 'main') {
+                    for (let i = 0; i < 3; i++) {
+                        cells[i * 3 + i].classList.add('winner');
+                    }
+                } else {
+                    for (let i = 0; i < 3; i++) {
+                        cells[i * 3 + (2 - i)].classList.add('winner');
+                    }
+                }
+            }
+        }
+
+        function resetBoard() {
+            for (let r = 0; r < 3; r++) {
+                for (let c = 0; c < 3; c++) {
+                    gameBoard[r][c] = 0;
+                }
+            }
+            createBoard();
+            messageEl.textContent = '';
+            currentPlayer = 1;
+            gameOver = false;
+        }
+
+        restartBtn.addEventListener('click', resetBoard);
+
+        createBoard();
+    </script>
+
+    
+</body>
+</html>

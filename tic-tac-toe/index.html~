@@ -1,0 +1,144 @@
+
+
+
+
+
+<script>
+
+import { 
+    InitWindow, SetTargetFPS, WindowShouldClose, IsMouseButtonPressed, GetMousePosition, 
+    GetTime, BeginDrawing, ClearBackground, DrawRectangle, DrawRectangleLines, DrawText, 
+    DrawLineEx, CloseWindow, MOUSE_LEFT_BUTTON, RAYWHITE, BLACK, RED, BLUE, GREEN, Vector2 
+} from 'raylib';
+
+const scX = 540;
+const scY = 540;
+const gridSize = 3;
+const cellSize = 180.0;
+
+class WinLine {
+    constructor() {
+        this.winner = 0; // 0 = none, 1 = X, 2 = O
+        this.startRow = 0;
+        this.startCol = 0;
+        this.endRow = 0;
+        this.endCol = 0;
+    }
+}
+
+function checkWin(board, winLine) {
+    // Rows
+    for (let r = 0; r < 3; r++) {
+        if (board[r][0] !== 0 && board[r][0] === board[r][1] && board[r][1] === board[r][2]) {
+            winLine.winner = board[r][0];
+            winLine.startRow = r; winLine.startCol = 0;
+            winLine.endRow = r; winLine.endCol = 2;
+            return true;
+        }
+    }
+    // Columns
+    for (let c = 0; c < 3; c++) {
+        if (board[0][c] !== 0 && board[0][c] === board[1][c] && board[1][c] === board[2][c]) {
+            winLine.winner = board[0][c];
+            winLine.startRow = 0; winLine.startCol = c;
+            winLine.endRow = 2; winLine.endCol = c;
+            return true;
+        }
+    }
+    // Diagonals
+    if (board[0][0] !== 0 && board[0][0] === board[1][1] && board[1][1] === board[2][2]) {
+        winLine.winner = board[0][0];
+        winLine.startRow = 0; winLine.startCol = 0;
+        winLine.endRow = 2; winLine.endCol = 2;
+        return true;
+    }
+    if (board[0][2] !== 0 && board[0][2] === board[1][1] && board[1][1] === board[2][0]) {
+        winLine.winner = board[0][2];
+        winLine.startRow = 0; winLine.startCol = 2;
+        winLine.endRow = 2; winLine.endCol = 0;
+        return true;
+    }
+    return false;
+}
+
+function resetBoard(board) {
+    for (let r = 0; r < 3; r++) {
+        for (let c = 0; c < 3; c++) {
+            board[r][c] = 0;
+        }
+    }
+}
+
+function main() {
+    InitWindow(scX, scY, "Tic-Tac-Toe");
+    SetTargetFPS(60);
+
+    const board = Array.from({ length: 3 }, () => Array(3).fill(0));
+    let currentPlayer = 1; // X starts
+    const winLine = new WinLine();
+    let gameOver = false;
+    let gameOverTime = 0;
+
+    while (!WindowShouldClose()) {
+        if (!gameOver && IsMouseButtonPressed(MOUSE_LEFT_BUTTON)) {
+            const mousePos = GetMousePosition();
+            const col = Math.floor(mousePos.x / cellSize);
+            const row = Math.floor(mousePos.y / cellSize);
+
+            if (row >= 0 && row < 3 && col >= 0 && col < 3) {
+                if (board[row][col] === 0) {
+                    board[row][col] = currentPlayer;
+                    // Check for win
+                    if (checkWin(board, winLine)) {
+                        gameOver = true;
+                        gameOverTime = GetTime();
+                    } else {
+                        currentPlayer = (currentPlayer === 1) ? 2 : 1;
+                    }
+                }
+            }
+        }
+
+        // Reset board 3 seconds after game over
+        if (gameOver && (GetTime() - gameOverTime > 3)) {
+            resetBoard(board);
+            gameOver = false;
+            winLine.winner = 0;
+            currentPlayer = 1;
+        }
+
+        BeginDrawing();
+        ClearBackground(RAYWHITE);
+
+        // Draw grid and X/O
+        for (let r = 0; r < 3; r++) {
+            for (let c = 0; c < 3; c++) {
+                const x = c * cellSize;
+                const y = r * cellSize;
+
+                DrawRectangle(x, y, cellSize, cellSize, RAYWHITE);
+                DrawRectangleLines(x, y, cellSize, cellSize, BLACK);
+
+                if (board[r][c] === 1) DrawText("X", x + cellSize / 4, y + cellSize / 4, 80, RED);
+                else if (board[r][c] === 2) DrawText("O", x + cellSize / 4, y + cellSize / 4, 80, BLUE);
+            }
+        }
+
+        // Highlight winning line
+        if (gameOver && winLine.winner !== 0) {
+            const startX = winLine.startCol * cellSize + cellSize / 2;
+            const startY = winLine.startRow * cellSize + cellSize / 2;
+            const endX = winLine.endCol * cellSize + cellSize / 2;
+            const endY = winLine.endRow * cellSize + cellSize / 2;
+            DrawLineEx(new Vector2(startX, startY), new Vector2(endX, endY), 8, GREEN);
+        }
+
+        EndDrawing();
+    }
+
+    CloseWindow();
+}
+
+main();
+
+  </script>
