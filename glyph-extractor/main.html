@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Glyph Extractor</title>
+  <style>
+    body { font-family: Arial; }
+    canvas { border: 1px solid #ccc; margin: 5px; }
+    .cluster { display: inline-block; margin: 10px; }
+  </style>
+</head>
+<body>
+
+<h2>Glyph Extractor & Clustering</h2>
+<input type="file" id="upload">
+<br><br>
+
+<label>Tile Size:</label>
+<input type="number" id="tileSize" value="64">
+
+<label>Clusters:</label>
+<input type="number" id="clusterCount" value="10">
+
+<button onclick="process()">Run</button>
+
+<hr>
+<div id="output"></div>
+
+<script>
+let img = new Image();
+
+document.getElementById("upload").onchange = function(e) {
+  const file = e.target.files[0];
+  img.src = URL.createObjectURL(file);
+};
+
+function process() {
+  const tileSize = parseInt(document.getElementById("tileSize").value);
+  const clusterCount = parseInt(document.getElementById("clusterCount").value);
+
+  const canvas = document.createElement("canvas");
+  const ctx = canvas.getContext("2d");
+
+  canvas.width = img.width;
+  canvas.height = img.height;
+  ctx.drawImage(img, 0, 0);
+
+  const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+  const gray = toGrayscale(imgData);
+  const binary = threshold(gray, 128);
+
+  const tiles = extractTiles(binary, canvas.width, canvas.height, tileSize);
+  const glyphs = extractGlyphs(tiles);
+
+  const vectors = glyphs.map(g => flatten(resize(g, 16, 16)));
+
+  const labels = kmeans(vectors, clusterCount);
+
+  displayClusters(glyphs, labels, 16);
+}
+
+function toGrayscale(imgData) {
+  let gray = [];
+  for (let i = 0; i < imgData.data.length; i += 4) {
+    let g = 0.3 * imgData.data[i] +
+            0.59 * imgData.data[i+1] +
+            0.11 * imgData.data[i+2];
+    gray.push(g);
+  }
+  return gray;
+}
+
+function threshold(gray, t) {
+  return gray.map(v => v < t ? 1 : 0);
+}
+
+function extractTiles(data, w, h, size) {
+  let tiles = [];
+  for (let y = 0; y < h; y += size) {
+    for (let x = 0; x < w; x += size) {
+      let tile = [];
+      for (let j = 0; j < size; j++) {
+        for (let i = 0; i < size; i++) {
+          let idx = (y+j)*w + (x+i);
+          tile.push(data[idx] || 0);
+        }
+      }
+      tiles.push({data: tile, size});
+    }
+  }
+  return tiles;
+}
+
+function extractGlyphs(tiles) {
+  let glyphs = [];
+
+  tiles.forEach(tile => {
+    let visited = new Set();
+
+    for (let i = 0; i < tile.data.length; i++) {
+      if (tile.data[i] === 1 && !visited.has(i)) {
+        let comp = floodFill(tile, i, visited);
+        if (comp.length > 20) {
+          glyphs.push(compToImage(comp, tile.size));
+        }
+      }
+    }
+  });
+
+  return glyphs;
+}
+
+function floodFill(tile, start, visited) {
+  let stack = [start];
+  let comp = [];
+  let size = tile.size;
+
+  while (stack.length) {
+    let i = stack.pop();
+    if (visited.has(i)) continue;
+    visited.add(i);
+    if (tile.data[i] === 0) continue;
+
+    comp.push(i);
+
+    let x = i % size;
+    let y = Math.floor(i / size);
+
+    [[x+1,y],[x-1,y],[x,y+1],[x,y-1]].forEach(([nx, ny]) => {
+      if (nx>=0 && ny>=0 && nx<size && ny<size) {
+        stack.push(ny*size + nx);
+      }
+    });
+  }
+
+  return comp;
+}
+
+function compToImage(comp, size) {
+  let minX=Infinity, minY=Infinity, maxX=0, maxY=0;
+
+  comp.forEach(i => {
+    let x = i % size;
+    let y = Math.floor(i / size);
+    minX = Math.min(minX, x);
+    minY = Math.min(minY, y);
+    maxX = Math.max(maxX, x);
+    maxY = Math.max(maxY, y);
+  });
+
+  let w = maxX - minX + 1;
+  let h = maxY - minY + 1;
+  let img = new Array(w*h).fill(0);
+
+  comp.forEach(i => {
+    let x = i % size - minX;
+    let y = Math.floor(i / size) - minY;
+    img[y*w + x] = 1;
+  });
+
+  return {data: img, w, h};
+}
+
+function resize(glyph, w2, h2) {
+  let out = new Array(w2*h2).fill(0);
+  for (let y=0; y<h2; y++) {
+    for (let x=0; x<w2; x++) {
+      let sx = Math.floor(x * glyph.w / w2);
+      let sy = Math.floor(y * glyph.h / h2);
+      out[y*w2 + x] = glyph.data[sy*glyph.w + sx];
+    }
+  }
+  return out;
+}
+
+function flatten(arr) {
+  return arr;
+}
+
+function kmeans(data, k, iterations=10) {
+  let centroids = data.slice(0, k);
+  let labels = new Array(data.length);
+
+  for (let iter=0; iter<iterations; iter++) {
+    for (let i=0; i<data.length; i++) {
+      let best = 0;
+      let minDist = Infinity;
+
+      for (let c=0; c<k; c++) {
+        let d = dist(data[i], centroids[c]);
+        if (d < minDist) {
+          minDist = d;
+          best = c;
+        }
+      }
+      labels[i] = best;
+    }
+
+    for (let c=0; c<k; c++) {
+      let cluster = data.filter((_, i) => labels[i] === c);
+      if (cluster.length === 0) continue;
+
+      let mean = new Array(data[0].length).fill(0);
+      cluster.forEach(v => {
+        for (let i=0; i<v.length; i++) mean[i] += v[i];
+      });
+      for (let i=0; i<mean.length; i++) mean[i] /= cluster.length;
+
+      centroids[c] = mean;
+    }
+  }
+
+  return labels;
+}
+
+function dist(a, b) {
+  let sum = 0;
+  for (let i=0; i<a.length; i++) {
+    let d = a[i] - b[i];
+    sum += d*d;
+  }
+  return sum;
+}
+
+function displayClusters(glyphs, labels, size) {
+  const out = document.getElementById("output");
+  out.innerHTML = "";
+
+  let clusters = {};
+
+  labels.forEach((l, i) => {
+    if (!clusters[l]) clusters[l] = [];
+    clusters[l].push(glyphs[i]);
+  });
+
+  Object.keys(clusters).forEach(k => {
+    let div = document.createElement("div");
+    div.className = "cluster";
+
+    let title = document.createElement("div");
+    title.innerText = "Cluster " + k;
+    div.appendChild(title);
+
+    clusters[k].forEach(g => {
+      let c = document.createElement("canvas");
+      c.width = size;
+      c.height = size;
+      let ctx = c.getContext("2d");
+
+      let imgData = ctx.createImageData(size, size);
+
+      for (let i=0; i<g.data.length; i++) {
+        let v = g.data[i] ? 0 : 255;
+        imgData.data[i*4+0] = v;
+        imgData.data[i*4+1] = v;
+        imgData.data[i*4+2] = v;
+        imgData.data[i*4+3] = 255;
+      }
+
+      ctx.putImageData(imgData, 0, 0);
+      div.appendChild(c);
+    });
+
+    out.appendChild(div);
+  });
+}
+</script>
+
+</body>
+</html>
