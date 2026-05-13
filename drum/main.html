@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Realistic Drum Kit</title>
+  <style>
+    body {
+      background: #111;
+      color: white;
+      text-align: center;
+      font-family: sans-serif;
+      padding-top: 50px;
+    }
+    .pad {
+      display: inline-block;
+      margin: 10px;
+      padding: 20px 30px;
+      border: 2px solid #fff;
+      border-radius: 10px;
+      cursor: pointer;
+    }
+    .pad:active {
+      background: white;
+      color: black;
+    }
+  </style>
+</head>
+<body>
+
+<h1>🥁 Real Drum Kit</h1>
+<p>A S D F G keys</p>
+
+<div class="pad" onclick="play('kick')">A - Kick</div>
+<div class="pad" onclick="play('snare')">S - Snare</div>
+<div class="pad" onclick="play('hihat')">D - Hi-hat</div>
+<div class="pad" onclick="play('openhat')">F - Open Hat</div>
+<div class="pad" onclick="play('clap')">G - Clap</div>
+
+<script>
+const sounds = {
+  kick: new Audio('sounds/kick.wav'),
+  snare: new Audio('sounds/snare.wav'),
+  hihat: new Audio('sounds/hihat.wav'),
+  openhat: new Audio('sounds/openhat.wav'),
+  clap: new Audio('sounds/clap.wav')
+};
+
+function play(name) {
+  const sound = sounds[name].cloneNode(); // allows overlap
+  sound.volume = 1;
+  sound.play();
+}
+
+document.addEventListener("keydown", (e) => {
+  switch(e.key.toLowerCase()) {
+    case "a": play("kick"); break;
+    case "s": play("snare"); break;
+    case "d": play("hihat"); break;
+    case "f": play("openhat"); break;
+    case "g": play("clap"); break;
+  }
+});
+</script>
+
+</body>
+</html>

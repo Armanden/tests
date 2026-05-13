@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bloated Slop</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f0f0f0;
+            color: #333;
+            text-align: center;
+            padding: 50px;
+        }
+        .fancy-border {
+            border: 5px dashed #FF5733;
+            padding: 20px;
+            margin: 20px;
+            border-radius: 10px;
+            box-shadow: 3px 3px 20px rgba(0,0,0,0.2);
+        }
+        .hidden {
+            display: none;
+        }
+        #dynamicContent {
+            margin-top: 20px;
+            font-size: 20px;
+        }
+    </style>
+    <script>
+        function showAlert() {
+            alert("This is a bloated feature!");
+        }
+
+        function changeText() {
+            document.getElementById("dynamicContent").innerText = "More slop!";
+        }
+
+        window.onload = function() {
+            setTimeout(changeText, 3000);
+            console.log("Page has loaded with unnecessary scripts.");
+        }
+    </script>
+</head>
+<body>
+    <div class="fancy-border">
+        <h1>Welcome to the Slop Page</h1>
+        <button onclick="showAlert()">Click me for a bloated alert</button>
+        <p>slop</p>
+        <div id="dynamicContent" class="hidden"></div>
+    </div>
+    <footer>
+        <p>&copy; 2026 Bloated Slop Inc.</p>
+        <img src="https://via.placeholder.com/150" alt="Placeholder Image" />
+    </footer>
+    <div style="position: fixed; bottom: 10px; right: 10px;">
+        <marquee behavior="scroll" direction="left" scrollamount="10">Welcome to the most unnecessary page ever!</marquee>
+    </div>
+</body>
+</html>
+
